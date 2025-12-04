@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校園報名系統 - 線上報名</title>
+    <!-- 載入 Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 使用 Google Font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #f3f4f6; /* 淺灰背景 */
+        }
+        /* 自定義滾動條 */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #d1d5db; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #9ca3af; }
+        
+        /* 輸入框發光效果 */
+        .input-glow:focus {
+            outline: none;
+            border-color: #f87171;
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.3);
+        }
+        
+        /* Toggle Switch (開關) */
+        .toggle-checkbox { top: 0; right: 0; transition: right 0.2s; }
+        .toggle-checkbox:checked { right: 1.25rem; }
+        .toggle-label { background-color: #fca5a5; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #dc2626; }
+    </style>
+</head>
+<body class="p-4 lg:p-8 min-h-screen">
+
+    <!-- Header 標題區 -->
+    <header class="text-center mb-6 lg:mb-10">
+        <h1 class="text-3xl lg:text-4xl font-extrabold text-gray-800 tracking-tight mb-2">
+            📝 校園報名系統
+        </h1>
+        <p class="text-gray-500 mb-4">快速、簡單的活動報名平台</p>
+        
+        <!-- 管理員登入列 (放在標題下方) -->
+        <div class="max-w-md mx-auto bg-white p-2 rounded-full shadow-sm border border-gray-200 flex items-center justify-between transition-all duration-300" id="adminLoginContainer">
+            <!-- 狀態顯示 -->
+            <div class="pl-4 flex items-center gap-2">
+                <div id="statusDot" class="w-2.5 h-2.5 rounded-full bg-gray-400"></div>
+                <span id="userStatusText" class="text-sm font-medium text-gray-500">訪客模式</span>
+            </div>
+
+            <!-- 登入輸入區 -->
+            <div id="loginForm" class="flex gap-2">
+                <input type="password" id="adminIdInput" placeholder="輸入管理者 ID" 
+                    class="text-sm px-3 py-1.5 border border-gray-300 rounded-full focus:outline-none focus:border-red-400 w-32 transition-all focus:w-40">
+                <button onclick="handleAdminLogin()" 
+                    class="bg-gray-800 hover:bg-gray-900 text-white text-sm px-4 py-1.5 rounded-full transition shadow-md">
+                    驗證
+                </button>
+            </div>
+
+            <!-- 登出按鈕 (預設隱藏) -->
+            <button id="logoutBtn" onclick="handleAdminLogout()" 
+                class="hidden bg-red-100 hover:bg-red-200 text-red-700 text-sm px-4 py-1.5 rounded-full transition font-bold">
+                登出管理
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- 左側: 報名與設定 (佔 4 等份) -->
+        <section class="lg:col-span-4 space-y-6">
+            
+            <!-- 管理員後台設定 (登入後顯示) -->
+            <div id="adminConfigPanel" class="hidden bg-red-50 p-5 rounded-2xl border border-red-100 shadow-inner">
+                <h3 class="text-lg font-bold text-red-800 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    管理員後台
+                </h3>
+                
+                <!-- 留言開關 -->
+                <div class="flex items-center justify-between mb-4 bg-white p-2 rounded-lg border border-red-100">
+                    <label for="allowCommentsToggle" class="text-sm font-medium text-gray-700 ml-1">允許新增留言</label>
+                    <div class="relative inline-block w-10 mr-1 align-middle select-none">
+                        <input type="checkbox" id="allowCommentsToggle" onchange="handleConfigChange(event)"
+                            class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-2 appearance-none cursor-pointer border-gray-300"/>
+                        <label for="allowCommentsToggle" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-300 cursor-pointer"></label>
+                    </div>
+                </div>
+
+                <!-- 活動管理 -->
+                <div class="mb-4">
+                    <h4 class="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">活動項目管理</h4>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="newEventInput" placeholder="輸入新活動名稱..." class="flex-1 px-3 py-1.5 text-sm border border-red-200 rounded-lg focus:outline-none focus:border-red-400">
+                        <button onclick="handleAddEvent()" class="bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-red-700 transition">新增</button>
+                    </div>
+                    <ul id="eventListAdmin" class="text-sm space-y-1 max-h-32 overflow-y-auto custom-scrollbar bg-white p-2 rounded-lg border border-red-100">
+                        <li class="text-gray-400 italic text-center text-xs p-2">載入中...</li>
+                    </ul>
+                </div>
+                
+                <!-- 資料操作 -->
+                <div>
+                    <h4 class="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">資料維護</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="handleExportData()" class="text-xs bg-white hover:bg-red-50 text-red-700 border border-red-200 py-2 rounded-lg transition">💾 匯出備份</button>
+                        <button onclick="document.getElementById('importFileInput').click()" class="text-xs bg-white hover:bg-red-50 text-red-700 border border-red-200 py-2 rounded-lg transition">📤 匯入還原</button>
+                        <input type="file" id="importFileInput" accept=".json" class="hidden" onchange="handleImportData(event)">
+                        <button onclick="handleClearDataPrompt()" class="col-span-2 text-xs bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition shadow-sm">🗑️ 清空所有資料</button>
+                    </div>
+                    <p id="adminMessage" class="text-xs mt-2 text-red-600 font-medium text-center hidden"></p>
+                </div>
+            </div>
+            
+            <!-- 報名表單 -->
+            <div class="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-pink-500"></div>
+                <h2 class="text-xl font-bold text-gray-800 mb-5 flex items-center">
+                    <span class="bg-red-100 text-red-600 p-1.5 rounded-lg mr-2">✍️</span> 我要報名
+                </h2>
+                
+                <form id="checkinForm" onsubmit="handleCheckin(event)" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">班級</label>
+                            <input type="text" id="classSelect" required placeholder="例: 301" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition input-glow">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">姓名</label>
+                            <input type="text" id="nameInput" required placeholder="您的姓名" class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition input-glow">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">選擇活動</label>
+                        <select id="eventSelect" required class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition input-glow cursor-pointer appearance-none">
+                            <option value="" disabled selected>載入活動列表中...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-1">備註 (50字內)</label>
+                        <textarea id="remarks" maxlength="50" placeholder="例如：吃素、自行前往..." class="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white transition input-glow h-20 resize-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">此刻心情</label>
+                        <div class="flex justify-between bg-gray-50 p-2 rounded-xl border border-gray-200">
+                            <label class="cursor-pointer hover:scale-110 transition transform"><input type="radio" name="mood" value="🥰" class="hidden" required><span class="text-2xl filter grayscale hover:grayscale-0 peer-checked:grayscale-0">🥰</span></label>
+                            <label class="cursor-pointer hover:scale-110 transition transform"><input type="radio" name="mood" value="😂" class="hidden"><span class="text-2xl filter grayscale hover:grayscale-0">😂</span></label>
+                            <label class="cursor-pointer hover:scale-110 transition transform"><input type="radio" name="mood" value="🤔" class="hidden"><span class="text-2xl filter grayscale hover:grayscale-0">🤔</span></label>
+                            <label class="cursor-pointer hover:scale-110 transition transform"><input type="radio" name="mood" value="😤" class="hidden"><span class="text-2xl filter grayscale hover:grayscale-0">😤</span></label>
+                            <label class="cursor-pointer hover:scale-110 transition transform"><input type="radio" name="mood" value="🤩" class="hidden"><span class="text-2xl filter grayscale hover:grayscale-0">🤩</span></label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" id="submitButton" class="w-full bg-gradient-to-r from-gray-800 to-gray-700 text-white font-bold py-3 rounded-xl hover:shadow-lg transition transform active:scale-95">
+                        送出報名
+                    </button>
+                    <p id="messageBox" class="text-xs text-center font-bold hidden"></p>
+                </form>
+            </div>
+        </section>
+
+        <!-- 右側: 紀錄牆 (佔 8 等份) -->
+        <section class="lg:col-span-8">
+            <div class="flex flex-col sm:flex-row justify-between items-end mb-4 gap-2">
+                <h2 class="text-2xl font-bold text-gray-800">📋 報名列表</h2>
+                <!-- 篩選工具列 -->
+                <div class="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1">
+                    <select id="eventFilterSelect" class="text-sm p-1.5 border border-gray-300 rounded-lg bg-white min-w-[100px]"></select>
+                    <select id="classFilterSelect" class="text-sm p-1.5 border border-gray-300 rounded-lg bg-white min-w-[80px]"></select>
+                    <input type="text" id="nameFilterInput" placeholder="搜尋姓名..." class="text-sm p-1.5 border border-gray-300 rounded-lg w-24 sm:w-32">
+                    <button onclick="clearFilters()" class="text-xs bg-gray-200 hover:bg-gray-300 px-3 rounded-lg text-gray-600 transition">重置</button>
+                </div>
+            </div>
+            
+            <!-- 列表容器 -->
+            <div id="recordsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 pb-10">
+                <div class="col-span-1 md:col-span-2 text-center py-10 text-gray-400 bg-white rounded-2xl border border-gray-200 border-dashed">
+                    載入資料中...
+                </div>
+            </div>
+        </section>
+
+    </main>
+    
+    <!-- 模態視窗組 (確認、留言、全文) -->
+    <div id="modalOverlay" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 transition-opacity">
+        
+        <!-- 刪除確認 Modal -->
+        <div id="deleteModal" class="hidden bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full transform scale-100 transition-transform">
+            <h3 class="text-lg font-bold text-gray-800 mb-2">確認刪除</h3>
+            <p class="text-gray-600 mb-6 text-sm">此操作無法復原，您確定要刪除這筆資料嗎？</p>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModals()" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-200">取消</button>
+                <button onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 shadow-md">確認刪除</button>
+            </div>
+        </div>
+
+        <!-- 留言 Modal -->
+        <div id="commentModal" class="hidden bg-white p-6 rounded-2xl shadow-2xl max-w-md w-full">
+            <h3 class="text-lg font-bold text-blue-600 mb-2">新增留言</h3>
+            <textarea id="commentInput" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm h-32 resize-none focus:ring-2 focus:ring-blue-200 focus:outline-none mb-4" placeholder="寫下您的留言..."></textarea>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModals()" class="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-200">取消</button>
+                <button onclick="submitComment()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 shadow-md">送出</button>
+            </div>
+        </div>
+
+        <!-- 全文 Modal -->
+        <div id="fullPostModal" class="hidden bg-white p-6 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-4 border-b border-gray-100 pb-2">
+                <h3 id="fullPostTitle" class="text-xl font-bold text-gray-800"></h3>
+                <button onclick="closeModals()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="fullPostContent" class="space-y-4"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Scripts -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, query, onSnapshot, doc, setDoc, getDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, increment, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ================= 設定區 =================
+        const ADMIN_KEY = 'EjVxVQSDUie7YsozsALjg2gWOuR2'; // 您的管理者 ID
+        const COLLECTION_NAME = "registrations"; 
+        const CONFIG_PATH = "config/general";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCk-1B0IwsSOwlNIn71-LofJRoHzgh6kJQ",
+            authDomain: "signup-f163b.firebaseapp.com",
+            projectId: "signup-f163b",
+            storageBucket: "signup-f163b.firebasestorage.app",
+            messagingSenderId: "4965735888",
+            appId: "1:4965735888:web:4f1583ac9fe48bd8d22dd5",
+            measurementId: "G-KCGH8ZYJDB"
+        };
+
+        // ================= 狀態變數 =================
+        let db, auth, userId = null;
+        let isAdmin = false; // 是否為管理員模式
+        let allRecords = [];
+        let appConfig = { allowComments: true, events: ['校慶路跑'] };
+        let activeAction = null; // 儲存當前要刪除或留言的 ID
+
+        // ================= 初始化 =================
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    initApp();
+                } else {
+                    await signInAnonymously(auth);
+                }
+            });
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+        }
+
+        function initApp() {
+            // 監聽設定檔
+            onSnapshot(doc(db, CONFIG_PATH), (snap) => {
+                if (snap.exists()) appConfig = snap.data();
+                else setDoc(doc(db, CONFIG_PATH), appConfig); // 若無設定則初始化
+                renderUI();
+            });
+
+            // 監聽資料庫
+            const q = query(collection(db, COLLECTION_NAME));
+            onSnapshot(q, (snapshot) => {
+                allRecords = snapshot.docs.map(d => ({
+                    id: d.id, ...d.data(),
+                    date: d.data().timestamp?.toDate() || new Date(0)
+                }));
+                renderUI();
+            });
+        }
+
+        // ================= 管理員邏輯 =================
+        window.handleAdminLogin = () => {
+            const input = document.getElementById('adminIdInput');
+            if (input.value.trim() === ADMIN_KEY) {
+                isAdmin = true;
+                input.value = '';
+                alert('歡迎回來，管理員！');
+            } else {
+                alert('ID 錯誤');
+            }
+            renderUI(); // 重新渲染介面
+        };
+
+        window.handleAdminLogout = () => {
+            isAdmin = false;
+            renderUI();
+        };
+
+        // ================= 介面渲染 (核心) =================
+        function renderUI() {
+            // 1. 更新 Header 狀態
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('userStatusText');
+            const loginForm = document.getElementById('loginForm');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const adminConfigPanel = document.getElementById('adminConfigPanel');
+
+            if (isAdmin) {
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]";
+                statusText.textContent = "管理員模式";
+                statusText.className = "text-sm font-bold text-green-700";
+                loginForm.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                adminConfigPanel.classList.remove('hidden'); // 顯示後台
+                
+                // 渲染後台活動列表
+                document.getElementById('eventListAdmin').innerHTML = (appConfig.events || []).map(evt => `
+                    <li class="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100">
+                        <span>${evt}</span>
+                        <button onclick="removeEvent('${evt}')" class="text-red-400 hover:text-red-600 font-bold px-2">×</button>
+                    </li>
+                `).join('') || '<li class="text-gray-400 text-center">無活動</li>';
+                
+                // 同步開關狀態
+                document.getElementById('allowCommentsToggle').checked = appConfig.allowComments;
+
+            } else {
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-gray-400";
+                statusText.textContent = "訪客模式";
+                statusText.className = "text-sm font-medium text-gray-500";
+                loginForm.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                adminConfigPanel.classList.add('hidden'); // 隱藏後台
+            }
+
+            // 2. 更新下拉選單 (Filter & Form)
+            const eventOpts = '<option value="">所有活動</option>' + (appConfig.events || []).map(e => `<option value="${e}">${e}</option>`).join('');
+            const formEventOpts = '<option value="" disabled selected>請選擇活動...</option>' + (appConfig.events || []).map(e => `<option value="${e}">${e}</option>`).join('');
+            
+            // 保持當前篩選值
+            const currentFilter = document.getElementById('eventFilterSelect').value;
+            document.getElementById('eventFilterSelect').innerHTML = eventOpts;
+            document.getElementById('eventFilterSelect').value = currentFilter;
+            
+            // 報名表單選單 (如果尚未選擇)
+            const formSelect = document.getElementById('eventSelect');
+            if(formSelect.value === "") formSelect.innerHTML = formEventOpts;
+
+            // 3. 更新班級篩選
+            const classes = new Set(allRecords.map(r => r.userClass).filter(Boolean));
+            const classOpts = '<option value="">所有班級</option>' + Array.from(classes).sort().map(c => `<option value="${c}">${c}</option>`).join('');
+            const currentClass = document.getElementById('classFilterSelect').value;
+            document.getElementById('classFilterSelect').innerHTML = classOpts;
+            document.getElementById('classFilterSelect').value = currentClass;
+
+            // 4. 渲染紀錄卡片 (套用篩選)
+            renderRecords();
+        }
+
+        function renderRecords() {
+            const container = document.getElementById('recordsContainer');
+            const nameFilter = document.getElementById('nameFilterInput').value.toLowerCase();
+            const classFilter = document.getElementById('classFilterSelect').value;
+            const eventFilter = document.getElementById('eventFilterSelect').value;
+
+            // 篩選與排序
+            let displayList = allRecords.filter(r => {
+                if (nameFilter && !r.userName.toLowerCase().includes(nameFilter)) return false;
+                if (classFilter && r.userClass !== classFilter) return false;
+                if (eventFilter && r.eventName !== eventFilter) return false;
+                if (!isAdmin && r.hidden) return false; // 非管理員隱藏
+                return true;
+            }).sort((a, b) => b.date - a.date); // 最新在前
+
+            container.innerHTML = displayList.length ? displayList.map(r => {
+                const isLiked = (r.likedBy || []).includes(userId);
+                // 管理員控制按鈕
+                const adminBtns = isAdmin ? `
+                    <div class="flex gap-2 ml-auto">
+                        <button onclick="toggleHide('${r.id}', ${r.hidden})" class="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200">${r.hidden ? '顯示' : '隱藏'}</button>
+                        <button onclick="openDeleteModal('${r.id}')" class="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200">刪除</button>
+                    </div>
+                ` : '';
+                
+                // 留言按鈕 (根據設定顯示)
+                const commentBtn = appConfig.allowComments ? 
+                    `<button onclick="openCommentModal('${r.id}')" class="text-blue-500 text-xs hover:underline flex items-center gap-1">💬 留言 (${r.comments?.length || 0})</button>` : '';
+
+                return `
+                <div class="bg-white p-4 rounded-xl shadow-sm border ${r.hidden ? 'border-yellow-300 bg-yellow-50' : 'border-gray-100'} hover:shadow-md transition">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-2xl">${r.moodEmoji}</span>
+                            <div>
+                                <p class="font-bold text-gray-800 text-sm">${r.userName} <span class="text-xs font-normal text-gray-500">(${r.userClass})</span></p>
+                                <p class="text-xs text-gray-400">${r.date.toLocaleString('zh-TW', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'})}</p>
+                            </div>
+                        </div>
+                        ${r.hidden ? '<span class="text-xs bg-yellow-200 text-yellow-800 px-1.5 py-0.5 rounded">隱藏中</span>' : ''}
+                    </div>
+                    
+                    <div class="bg-gray-50 p-2 rounded-lg mb-2">
+                        <div class="text-xs text-red-500 font-bold mb-1">🎯 ${r.eventName}</div>
+                        <div class="text-sm text-gray-700 break-words">${r.remarks || '無備註'}</div>
+                    </div>
+
+                    <div class="flex items-center gap-3 mt-2 pt-2 border-t border-gray-50">
+                        <button onclick="handleLike('${r.id}')" class="flex items-center gap-1 text-xs font-bold ${isLiked ? 'text-pink-500' : 'text-gray-400 hover:text-pink-400'} transition">
+                            <span class="text-lg">${isLiked ? '♥' : '♡'}</span> ${r.likes || 0}
+                        </button>
+                        ${commentBtn}
+                        <button onclick="openFullPost('${r.id}')" class="text-gray-400 text-xs hover:text-gray-600 ml-auto">詳情</button>
+                        ${adminBtns} 
+                    </div>
+                </div>`;
+            }).join('') : '<div class="col-span-full text-center py-10 text-gray-400">沒有符合的資料</div>';
+        }
+
+        // ================= 操作邏輯 =================
+        window.handleCheckin = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submitButton');
+            const msg = document.getElementById('messageBox');
+            const form = e.target;
+            
+            btn.disabled = true; btn.textContent = '處理中...';
+            
+            try {
+                await addDoc(collection(db, COLLECTION_NAME), {
+                    userId,
+                    userClass: form.classSelect.value,
+                    userName: form.nameInput.value,
+                    eventName: form.eventSelect.value,
+                    remarks: form.remarks.value,
+                    moodEmoji: form.mood.value,
+                    timestamp: serverTimestamp(),
+                    likes: 0, comments: [], likedBy: [], hidden: false
+                });
+                form.reset();
+                msg.textContent = "✅ 報名成功！"; msg.className = "text-xs text-center font-bold text-green-600 mt-2 block";
+            } catch (err) {
+                console.error(err);
+                msg.textContent = "❌ 失敗，請檢查網路或權限"; msg.className = "text-xs text-center font-bold text-red-500 mt-2 block";
+            }
+            setTimeout(() => { btn.disabled = false; btn.textContent = '送出報名'; msg.classList.add('hidden'); }, 2000);
+        };
+
+        window.handleLike = async (id) => {
+            if (!userId) return;
+            const ref = doc(db, COLLECTION_NAME, id);
+            const r = allRecords.find(x => x.id === id);
+            if (!r) return;
+            const isLiked = (r.likedBy || []).includes(userId);
+            try {
+                await updateDoc(ref, isLiked ? 
+                    { likes: increment(-1), likedBy: arrayRemove(userId) } : 
+                    { likes: increment(1), likedBy: arrayUnion(userId) }
+                );
+            } catch (e) { console.error(e); }
+        };
+
+        // --- 管理員操作 ---
+        window.handleAddEvent = async () => {
+            const val = document.getElementById('newEventInput').value.trim();
+            if(val) {
+                await updateDoc(doc(db, CONFIG_PATH), { events: arrayUnion(val) });
+                document.getElementById('newEventInput').value = '';
+            }
+        };
+        window.removeEvent = async (val) => {
+            if(confirm(`刪除活動「${val}」？`)) await updateDoc(doc(db, CONFIG_PATH), { events: arrayRemove(val) });
+        };
+        window.handleConfigChange = async (e) => {
+            await updateDoc(doc(db, CONFIG_PATH), { allowComments: e.target.checked });
+        };
+        window.toggleHide = async (id, current) => {
+            await updateDoc(doc(db, COLLECTION_NAME, id), { hidden: !current });
+        };
+        window.confirmDelete = async () => {
+            if (activeAction) await deleteDoc(doc(db, COLLECTION_NAME, activeAction));
+            closeModals();
+        };
+        window.handleClearDataPrompt = () => {
+            if(confirm('警告：這將刪除所有報名資料！確定嗎？')) {
+                allRecords.forEach(r => deleteDoc(doc(db, COLLECTION_NAME, r.id)));
+            }
+        }
+        
+        // --- 匯入匯出 ---
+        window.handleExportData = () => {
+            const data = JSON.stringify(allRecords.map(({id, date, ...rest}) => ({...rest, timestamp: date.toISOString()})), null, 2);
+            const blob = new Blob([data], {type:'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup_${new Date().toISOString().split('T')[0]}.json`; a.click();
+        };
+        window.handleImportData = (e) => {
+            const reader = new FileReader();
+            reader.onload = async (evt) => {
+                const data = JSON.parse(evt.target.result);
+                if(confirm(`將匯入 ${data.length} 筆資料，現有資料將被清除，確定？`)) {
+                    allRecords.forEach(r => deleteDoc(doc(db, COLLECTION_NAME, r.id))); // 清空
+                    for(const r of data) {
+                        const {timestamp, ...rest} = r;
+                        await addDoc(collection(db, COLLECTION_NAME), {...rest, timestamp: new Date(timestamp)});
+                    }
+                    alert('匯入完成');
+                }
+            };
+            if(e.target.files[0]) reader.readAsText(e.target.files[0]);
+            e.target.value = '';
+        }
+
+        // --- Modals ---
+        window.openDeleteModal = (id) => { activeAction = id; document.getElementById('modalOverlay').classList.remove('hidden'); document.getElementById('deleteModal').classList.remove('hidden'); };
+        window.openCommentModal = (id) => { activeAction = id; document.getElementById('commentInput').value = ''; document.getElementById('modalOverlay').classList.remove('hidden'); document.getElementById('commentModal').classList.remove('hidden'); };
+        window.closeModals = () => { 
+            activeAction = null; 
+            document.getElementById('modalOverlay').classList.add('hidden'); 
+            document.querySelectorAll('#modalOverlay > div').forEach(d => d.classList.add('hidden')); 
+        };
+        
+        window.submitComment = async () => {
+            const txt = document.getElementById('commentInput').value.trim();
+            if(txt && activeAction) {
+                await updateDoc(doc(db, COLLECTION_NAME, activeAction), { 
+                    comments: arrayUnion({ userId, text: txt, timestamp: new Date().toISOString() }) 
+                });
+            }
+            closeModals();
+        };
+
+        window.openFullPost = (id) => {
+            const r = allRecords.find(x => x.id === id);
+            if(!r) return;
+            document.getElementById('fullPostTitle').textContent = r.eventName;
+            let html = `
+                <div class="bg-gray-50 p-4 rounded-xl mb-4 text-sm space-y-2">
+                    <p><span class="font-bold text-gray-500">報名者：</span>${r.userName} (${r.userClass})</p>
+                    <p><span class="font-bold text-gray-500">備註：</span>${r.remarks || '無'}</p>
+                    <p><span class="font-bold text-gray-500">心情：</span>${r.moodEmoji}</p>
+                </div>
+                <div class="space-y-3">
+                    <h4 class="font-bold text-gray-700 border-b pb-2">留言板 (${r.comments?.length||0})</h4>
+                    ${(r.comments || []).map(c => `
+                        <div class="bg-blue-50 p-3 rounded-lg text-sm">
+                            <div class="font-bold text-blue-800 text-xs mb-1">${c.userId.substring(0,6)}...</div>
+                            <div class="text-gray-700">${c.text}</div>
+                        </div>
+                    `).join('') || '<p class="text-gray-400 text-center text-sm py-4">尚無留言</p>'}
+                </div>
+            `;
+            document.getElementById('fullPostContent').innerHTML = html;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.getElementById('fullPostModal').classList.remove('hidden');
+        }
+
+        // Global Helpers
+        window.clearFilters = () => {
+            document.getElementById('nameFilterInput').value = '';
+            document.getElementById('classFilterSelect').value = '';
+            document.getElementById('eventFilterSelect').value = '';
+            renderUI();
+        };
+        
+        // 綁定 Filter 事件
+        document.getElementById('nameFilterInput').addEventListener('input', renderUI);
+        ['classFilterSelect', 'eventFilterSelect'].forEach(id => document.getElementById(id).addEventListener('change', renderUI));
+
+    </script>
+</body>
+</html>
